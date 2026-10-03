@@ -55,6 +55,15 @@ if [ -f "$codex_home/config.toml" ]; then
   done
 fi
 
+watchdog_plist="$HOME/Library/LaunchAgents/com.screddy.kernel-zone-watchdog.plist"
+if [ -f "$watchdog_plist" ]; then
+  if rg -q 'claude-code-harness|claude-harness' "$watchdog_plist"; then
+    fail "$watchdog_plist contains stale Claude harness wiring"
+  fi
+  watchdog_path=$(plutil -extract ProgramArguments.0 raw -o - "$watchdog_plist" 2>/dev/null || true)
+  [ -x "$watchdog_path" ] || fail "kernel-zone watchdog target is not executable: $watchdog_path"
+fi
+
 if [ -d "$workspace" ]; then
   git -C "$workspace" rev-parse --show-toplevel >/dev/null 2>&1 ||
     fail "$workspace is not a git repository"

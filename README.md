@@ -169,7 +169,8 @@ git diff --check
 ```
 
 The tests use temporary repositories and mocked CLIs. They do not send mail, mutate
-production systems, or call external accounts.
+production systems, call external accounts, or show desktop notifications. The kernel-zone
+watchdog tests suppress notifications while exercising synthetic thresholds.
 
 ## Sanitization
 
