@@ -1,0 +1,94 @@
+{
+  "$version": 4,
+  "security": { "auth": { "selectedType": "openai" } },
+  "model": {
+    "name": "${QWEN_SESSION_MODEL}",
+    "chatCompression": { "maxRecentFilesToRetain": 1 }
+  },
+  "fastModel": "${QWEN_FAST_MODEL}",
+  "modelProviders": {
+    "openai": [{
+      "id": "${QWEN_SESSION_MODEL}",
+      "name": "${QWEN_SESSION_MODEL} (Ollama)",
+      "envKey": "OPENAI_API_KEY",
+      "baseUrl": "${QWEN_LOCAL_BASE_URL}",
+      "generationConfig": {
+        "contextWindowSize": 32768,
+        "timeout": 300000,
+        "streamIdleTimeoutMs": 120000,
+        "maxRetries": 1,
+        "samplingParams": { "temperature": 0.2, "max_tokens": 4096 },
+        "extra_body": { "reasoning_effort": "none" }
+      }
+    }, {
+      "id": "${QWEN_FAST_MODEL}",
+      "name": "${QWEN_FAST_MODEL} (Ollama, side queries)",
+      "envKey": "OPENAI_API_KEY",
+      "baseUrl": "${QWEN_LOCAL_BASE_URL}",
+      "generationConfig": {
+        "contextWindowSize": 32768,
+        "timeout": 120000,
+        "maxRetries": 1,
+        "samplingParams": { "temperature": 0.2, "max_tokens": 4096 },
+        "extra_body": { "reasoning_effort": "none" }
+      }
+    }]
+  },
+  "context": {
+    "fileName": ["AGENTS.md", "QWEN.md"],
+    "autoCompactThreshold": 0.8,
+    "clearContextOnIdle": { "toolResultsTotalCharsThreshold": 24000, "toolResultsNumToKeep": 3 }
+  },
+  "skills": { "disabledLevels": ["user", "bundled"] },
+  "memory": { "enableManagedAutoMemory": false, "enableManagedAutoDream": false },
+  "permissions": { "deny": ["notebook_edit"] },
+  "tools": {
+    "approvalMode": "default",
+    "eager": ["read_file", "grep_search", "glob", "edit", "write_file", "run_shell_command"],
+    "toolSearch": { "threshold": 0 },
+    "truncateToolOutputThreshold": 8000,
+    "truncateToolOutputLines": 200
+  },
+  "ui": { "enableFollowupSuggestions": false },
+  "experimental": { "emitToolUseSummaries": false },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "read_file|grep_search|glob|run_shell_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${QWEN_HARNESS_ROOT}/scripts/qwen-progress-guard.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "read_file|grep_search|glob|run_shell_command|edit|write_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${QWEN_HARNESS_ROOT}/scripts/qwen-progress-guard.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${QWEN_HARNESS_ROOT}/scripts/qwen-progress-guard.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  },
+  "telemetry": { "enabled": false, "logPrompts": false },
+  "privacy": { "usageStatisticsEnabled": false }
+}

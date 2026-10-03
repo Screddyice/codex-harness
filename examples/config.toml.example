@@ -1,0 +1,40 @@
+# Example ~/.codex/config.toml
+#
+# Keep secrets out of this file. Put credentials in your shell environment, a secret
+# manager, or per-project .env files that are never committed.
+
+preferred_auth_method = "chatgpt"
+
+# Give workspace and repository AGENTS.md files enough room for operational context.
+project_doc_max_bytes = 131072
+
+# Trust only the workspace roots where you intentionally run Codex.
+[projects."/Users/you/projects"]
+trust_level = "trusted"
+
+# Example first-party plugin. Enable only plugins you actually use.
+[plugins."gmail@openai-curated"]
+enabled = false
+
+# Optional hooks. Copy examples/hooks.json.example to ~/.codex/hooks.json first.
+# hooks = "/Users/you/.codex/hooks.json"
+#
+# [features]
+# hooks = true
+
+# Default sandbox and approval behavior.
+# CLI equivalents:
+#   codex --sandbox workspace-write --ask-for-approval on-request
+sandbox_mode = "workspace-write"
+approval_policy = "on-request"
+
+# Optional profile for a specific model or reasoning setting.
+[profiles.default]
+model = "gpt-5.4"
+model_reasoning_effort = "medium"
+
+# Register MCP servers with the CLI instead of hand-writing config:
+#
+#   codex mcp add my-server -- /path/to/server --stdio
+#   codex mcp add docs --url https://example.com/mcp
+#   codex mcp list

@@ -1,0 +1,156 @@
+#!/usr/bin/env bash
+# qwen - guarded local Ollama sessions for Codex and Qwen Code.
+# This wrapper is Codex-only and never edits ~/.codex/config.toml.
+
+set -eo pipefail
+
+MODEL=$(printenv QWEN_MODEL 2>/dev/null || true)
+[ -n "$MODEL" ] || MODEL=qwen3.5:4b-64k
+if [ "$1" = 27b ] || [ "$1" = 27B ]; then MODEL=qwen3.8:27b-obliterated; shift; fi
+STATE_DIR=$(printenv QWEN_STATE_DIR 2>/dev/null || true)
+[ -n "$STATE_DIR" ] || STATE_DIR=$HOME/.cache/qwen
+MODEL_KEY=$(printf '%s' "$MODEL" | tr -c '[:alnum:]_.-' '_')
+MEASURED=$STATE_DIR/$MODEL_KEY/resident-bytes
+LEASE_DIR=$(printenv LLMJURY_COMPUTE_LEASE_DIR 2>/dev/null || true)
+[ -n "$LEASE_DIR" ] || LEASE_DIR=$HOME/.backdoor/compute-leases
+LOCK_PATH=$(printenv LLMJURY_LOCAL_LOCK 2>/dev/null || true)
+[ -n "$LOCK_PATH" ] || LOCK_PATH=$HOME/.cache/llmjury/local-compute.lock
+GB=$((1024 ** 3))
+DESKTOP_RESERVE=$((4 * GB))
+PROMPT_CACHE_MIB=$(printenv QWEN_PROMPT_CACHE_MIB 2>/dev/null || true)
+[ -n "$PROMPT_CACHE_MIB" ] || PROMPT_CACHE_MIB=1024
+host=$(printenv OLLAMA_HOST 2>/dev/null || true)
+[ -n "$host" ] || host=127.0.0.1:11434
+case "$host" in http://*|https://*) API=$host ;; *) API=http://$host ;; esac
+
+die() { printf 'qwen: %s\n' "$*" >&2; exit 1; }
+note() { [ "$(printenv QWEN_QUIET 2>/dev/null || true)" = 1 ] || printf 'qwen: %s\n' "$*" >&2; }
+gb() { awk -v bytes="$1" 'BEGIN { printf "%.1f", bytes / 1073741824 }'; }
+api() { curl -fsS --max-time "$2" "$API$1" 2>/dev/null; }
+start_server() {
+  api /api/version 1 >/dev/null 2>&1 && return
+  launchctl kickstart "gui/$(id -u)/com.screddy.ollama" >/dev/null 2>&1 || true
+  for _ in $(seq 1 30); do api /api/version 1 >/dev/null 2>&1 && return; sleep 1; done
+  die "Ollama did not come up on $API"
+}
+disk_bytes() {
+  api /api/tags 30 | jq -r --arg m "$MODEL" '[.models[] | select(.name == $m or .name == ($m + ":latest")) | .size][0] // empty'
+}
+resident_names() { api /api/ps 10 | jq -r '.models[]?.name // empty'; }
+resident_bytes() {
+  api /api/ps 10 | jq -r --arg m "$MODEL" '[.models[]? | select(.name == $m or .name == ($m + ":latest")) | .size][0] // empty'
+}
+same_model() { [ "$1" = "$MODEL" ] || [ "$1" = "$MODEL:latest" ]; }
+other_models() {
+  local name
+  while read -r name; do [ -z "$name" ] || same_model "$name" || printf '%s\n' "$name"; done < <(resident_names)
+}
+check_pressure() {
+  local level
+  level=$(sysctl -n kern.memorystatus_vm_pressure_level 2>/dev/null) || die "cannot read host memory pressure"
+  [ "$level" = 1 ] || die "host memory pressure is elevated or unknown (level $level)"
+}
+available_bytes() {
+  vm_stat 2>/dev/null | python3 -c '
+import re,sys
+text=sys.stdin.read()
+page=re.search(r"page size of ([0-9]+) bytes",text)
+values=[re.search(r"^Pages "+name+r":\s+([0-9]+)\.\s*$",text,re.M) for name in ("free","speculative","purgeable")]
+files=re.search(r"^File-backed pages:\s+([0-9]+)\.\s*$",text,re.M)
+if not page or not all(values) or not files: raise SystemExit(1)
+free,spec,purge=(int(x[1]) for x in values)
+print(int(page[1])*(free+max(int(files[1]),spec+purge)))'
+}
+need_bytes() {
+  local measured disk slots ctx
+  measured=$(cat "$MEASURED" 2>/dev/null || true)
+  case "$measured" in ''|*[!0-9]*) ;; *) printf '%s\n' $((measured + PROMPT_CACHE_MIB * 1024 * 1024)); return;; esac
+  disk=$(disk_bytes); [ -n "$disk" ] || return 1
+  slots=$(printenv OLLAMA_NUM_PARALLEL 2>/dev/null || true); [ -n "$slots" ] || slots=2
+  ctx=$(printenv OLLAMA_CONTEXT_LENGTH 2>/dev/null || true); [ -n "$ctx" ] || ctx=32768
+  printf '%s\n' $((disk * 115 / 100 + ctx * slots * 45000 + PROMPT_CACHE_MIB * 1024 * 1024))
+}
+take_lock() {
+  mkdir -p "$(dirname "$LOCK_PATH")"; exec 9>>"$LOCK_PATH"
+  python3 - <<'PY' || die "another local council or background review owns compute; retry later"
+import fcntl
+fcntl.flock(9, fcntl.LOCK_EX | fcntl.LOCK_NB)
+PY
+}
+lease_file=
+lease_open() { mkdir -p "$LEASE_DIR"; lease_file=$LEASE_DIR/qwen-$$.json; printf '{"active":true,"model":"%s","pid":%d,"source":"qwen"}\n' "$MODEL" "$$" > "$lease_file"; }
+lease_close() { [ -z "$lease_file" ] || rm -f "$lease_file"; lease_file=; }
+lease_prune() {
+  local file pid
+  for file in "$LEASE_DIR"/*.json; do
+    [ -e "$file" ] || continue
+    pid=$(jq -r '.pid // empty' "$file" 2>/dev/null || true)
+    [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null || rm -f "$file"
+  done
+}
+trap lease_close EXIT INT TERM
+stop_other_models() {
+  local name
+  while read -r name; do [ -n "$name" ] || continue; note "unloading $name to make room"; ollama stop "$name" >/dev/null 2>&1 || die "failed to unload $name"; done < <(other_models)
+}
+admit() {
+  local available required budget
+  check_pressure; stop_other_models
+  required=$(need_bytes) || die "cannot estimate model memory; use --force to override"
+  available=$(available_bytes) || die "cannot read host memory; use --force to override"
+  budget=$((available - DESKTOP_RESERVE)); [ "$budget" -ge 0 ] || budget=0
+  [ "$budget" -ge "$required" ] || die "$MODEL needs ~$(gb "$required") GiB; only $(gb "$budget") GiB estimated headroom"
+  note "loading $MODEL (~$(gb "$required") GB)"
+}
+admit_session() {
+  start_server
+  [ -n "$(disk_bytes)" ] || die "$MODEL is not pulled (ollama pull $MODEL)"
+  if [ -n "$(resident_bytes)" ]; then check_pressure; note "attaching to resident $MODEL"; return; fi
+  take_lock; lease_open
+  if [ "$(printenv QWEN_FORCE 2>/dev/null || true)" != 1 ]; then admit; else note "--force: skipping memory guard"; fi
+}
+cmd_status() {
+  start_server; local size
+  size=$(resident_bytes || true)
+  [ -n "$size" ] && printf '%s resident, %s GB\n' "$MODEL" "$(gb "$size")" || printf '%s not loaded\n' "$MODEL"
+  printf 'compute leases: %s\n' "$(find "$LEASE_DIR" -maxdepth 1 -name '*.json' 2>/dev/null | wc -l | tr -d ' ')"
+}
+cmd_stop() { start_server; ollama stop "$MODEL" >/dev/null 2>&1 || true; note "unloaded $MODEL"; }
+cmd_codex() {
+  local bin mcp=cmem
+  bin=$(command -v codex) || die "codex is not on PATH"
+  while [ "$#" -gt 0 ]; do case "$1" in --force) QWEN_FORCE=1; export QWEN_FORCE; shift;; --mcp) mcp=$2; shift 2;; *) break;; esac; done
+  admit_session
+  case "$mcp" in
+    none) set -- -c 'mcp_servers={}' "$@";;
+    all) note "keeping MCP servers from ~/.codex/config.toml";;
+    cmem) [ -n "$(printenv CMEM_PRO_TOKEN 2>/dev/null || true)" ] || die "CMEM_PRO_TOKEN is unavailable; use --mcp none"; set -- -c 'mcp_servers={\"cmem\":{\"url\":\"https://cmem.ai/api/mcp\",\"bearer_token_env_var\":\"CMEM_PRO_TOKEN\"}}' "$@";;
+    *) die "--mcp takes cmem, none or all";;
+  esac
+  set -- -c 'model_providers.qwen.name=Qwen (local Ollama)' -c "model_providers.qwen.base_url=$API/v1" -c 'model_providers.qwen.wire_api=responses' -c 'model_provider=qwen' -m "$MODEL" "$@"
+  exec "$bin" "$@"
+}
+ROOT=$(cd -- "$(dirname -- "$(python3 -c 'import os,sys;print(os.path.realpath(sys.argv[1]))' "$0")")/.." && pwd -P)
+cmd_code() {
+  local bin plan
+  bin=$(printenv QWEN_CODE_BIN 2>/dev/null || true); [ -n "$bin" ] || bin=$HOME/.local/share/qwen-code/node_modules/.bin/qwen
+  [ -x "$bin" ] || die "Qwen Code is missing; run scripts/install-qwen-code.sh"
+  plan=
+  while [ "$#" -gt 0 ]; do case "$1" in --force) QWEN_FORCE=1; export QWEN_FORCE; shift;; --plan) plan=$2; shift 2;; *) break;; esac; done
+  admit_session
+  set -- --auth-type openai --model "$MODEL" --openai-base-url "$API/v1" "$@"
+  [ -z "$plan" ] || set -- "$@" --append-system-prompt "$(python3 "$ROOT/scripts/qwen-plan-context.py" "$plan")"
+  env -u OPENAI_API_KEY OPENAI_API_KEY=ollama-local OPENAI_BASE_URL="$API/v1" QWEN_SESSION_MODEL="$MODEL" QWEN_HARNESS_ROOT="$ROOT" "$bin" "$@"
+}
+[ "$#" -gt 0 ] || { sed -n '1,5p' "$0"; exit 0; }
+command -v ollama >/dev/null 2>&1 || die "ollama is not on PATH"
+command -v jq >/dev/null 2>&1 || die "jq is required"
+lease_prune
+case "$1" in
+  status) shift; cmd_status "$@";;
+  stop) shift; cmd_stop "$@";;
+  codex) shift; cmd_codex "$@";;
+  code|agent) shift; cmd_code "$@";;
+  raw) shift; admit_session; [ "$#" -gt 0 ] && exec ollama run "$MODEL" "$*" || exec ollama run "$MODEL";;
+  *) cmd_code "$@";;
+esac

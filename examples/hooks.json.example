@@ -1,0 +1,50 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/absolute/path/to/codex-harness/scripts/init-codex-harness.sh",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env HARNESS_PR_OWNERS='your-github-owner' /absolute/path/to/codex-harness/scripts/hooks/auto-pr-push.sh",
+            "timeout": 15,
+            "statusMessage": "Auto-pushing branch and ensuring draft PR"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/absolute/path/to/codex-harness/scripts/hooks/local-diff-review-codex.sh",
+            "timeout": 600,
+            "statusMessage": "Local model reviewing the current diff"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/absolute/path/to/codex-harness/scripts/hooks/enforce-pr-codex.sh",
+            "timeout": 20,
+            "statusMessage": "Checking branch has a PR"
+          }
+        ]
+      }
+    ]
+  }
+}

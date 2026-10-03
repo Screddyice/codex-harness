@@ -1,0 +1,58 @@
+# Project AGENTS.md
+
+## Project Context
+
+`<PROJECT_NAME>` belongs to `<COMPANY_OR_OWNER>`.
+
+Purpose:
+
+- `<one-line product or system purpose>`
+
+Primary stack:
+
+- `<runtime/framework/database/deploy target>`
+
+## Local Setup
+
+```bash
+<install command>
+<test command>
+<dev command>
+```
+
+## Working Rules
+
+- Read this file and relevant docs before editing.
+- Keep changes scoped to the requested behavior.
+- Prefer existing patterns over new abstractions.
+- Do not commit secrets, generated auth caches, or local logs.
+- Do not run production mutations without explicit confirmation.
+- Open a draft PR immediately after the first commit on a work branch, push later
+  checkpoints to it, and never leave keepable branch commits without a PR.
+
+## Architecture
+
+- Domain logic: `<path>`
+- API routes or entry points: `<path>`
+- Infrastructure adapters: `<path>`
+- Tests: `<path>`
+- Deployment config: `<path>`
+
+## Verification
+
+Before handing off changes, run the narrowest useful verification:
+
+```bash
+<test command>
+```
+
+Broaden testing when changes affect shared contracts, auth, billing, data migration,
+or production workflows.
+
+## External Services
+
+| Service | Company account | Notes |
+|---------|-----------------|-------|
+| `<service>` | `<account>` | `<scope and safety notes>` |
+
+Ask before calling external tools if the correct company account is unclear.

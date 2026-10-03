@@ -1,0 +1,137 @@
+# Workspace AGENTS.md
+
+This file is a **template** for a multi-company Codex workspace directory such as
+`~/projects/`. Replace `<COMPANY_A>`, `<COMPANY_B>`, and `<COMPANY_C>` with your own
+organizations.
+
+## Workspace Overview
+
+`~/projects/` is the top-level workspace for multiple companies and personal projects.
+It is **not** a single git repo. Each subdirectory is an independent project or
+monorepo with its own git history, tooling, and optional `AGENTS.md`.
+
+Always `cd` into the specific project directory and read its `AGENTS.md` before doing
+project work.
+
+## Directory Map
+
+| Directory | Belongs to | Description |
+|-----------|------------|-------------|
+| `<company-a>/` | Company A | Primary company repos |
+| `<company-b>/` | Company B | Company B repos |
+| `<company-c>/` | Company C | Company C repos |
+| `personal/` | Personal | Personal tools and experiments |
+| `_workspace/` | Cross-company | Specs, memory, runbooks, shared scripts |
+| `third-party/` | External | Clones from upstream owners |
+
+## Integration Selection
+
+External service integrations must be scoped per company. Each company should have its
+own app connector account, MCP server configuration, cloud account, webhook receiver,
+and environment variable prefix.
+
+If the company context is unclear, ask before calling tools that can read or mutate
+mailboxes, calendars, task trackers, CRMs, cloud resources, or production systems.
+
+Anti-patterns:
+
+- Do not cross-wire company credentials.
+- Do not reuse one company's OAuth connection for another company.
+- Do not commit `.env`, OAuth tokens, API keys, generated auth caches, or private logs.
+- Do not assume "the server" means the same host across companies.
+
+## Codex Configuration
+
+User-level Codex config lives at `~/.codex/config.toml`. Keep durable project guidance
+in `AGENTS.md`, not in one-off prompts.
+
+Recommended defaults:
+
+- Use workspace-write sandboxing for normal coding.
+- Use `on-request` approvals for interactive work.
+- Use company-specific MCP names and environment variables.
+- Register MCP servers with `codex mcp add`, then verify with `codex mcp list`.
+
+## Per-Company Infrastructure Pattern
+
+Each company should run on its own dedicated cloud account or host. They are separate
+authority boundaries with separate credentials, deploy flows, logs, and incident
+surfaces.
+
+| Company | Instance | SSH alias | Region |
+|---------|----------|-----------|--------|
+| Company A | `<company-a>-main` | `<company-a>-server` | `<region>` |
+| Company B | `<company-b>-main` | `<company-b>-server` | `<region>` |
+| Company C | `<company-c>-main` | `<company-c>-server` | `<region>` |
+
+Each company also runs its own independent overlay network. Do not depend on another
+company's network, DNS, or tunnel.
+
+## Webhook Architecture
+
+Automations that react to external changes should be webhook-triggered where possible.
+Polling is acceptable only when the upstream service has no webhook, the event is
+genuinely time-based, or the polling interval is part of an explicit reliability plan.
+
+What stays scheduled: daily reports, weekly digests, health checks, renewals, and
+scheduled publishing.
+
+## Universal Code Pattern
+
+Prefer domain-driven boundaries:
+
+- Business logic lives in `pipeline/`, `domains/`, or `services/`.
+- External API wrappers are infrastructure adapters.
+- API routes, MCP tools, cron wrappers, and CLIs stay thin.
+- External SDK types should not leak into core domain logic.
+
+## Git Workflow
+
+Never commit directly to `main` unless the repository explicitly allows it.
+
+Branch naming:
+
+| Pattern | Use for |
+|---------|---------|
+| `feat/fe-<name>` | Frontend features |
+| `feat/be-<name>` | Backend features |
+| `bug-fix/<name>` | Bug fixes |
+| `hot-fix/<name>` | Production hotfixes |
+
+Commit format:
+
+```text
+type(scope): short description
+
+Explanation of what changed and why.
+```
+
+Allowed types: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `ci`, `perf`,
+`style`, `build`.
+
+Every committed work branch gets one PR. Push and open a draft PR immediately after
+the first commit instead of waiting for the feature to be complete, then push later
+checkpoint commits to the same PR. Before ending a session or switching branches,
+verify that every branch with keepable commits has an open or merged PR. Do not
+self-merge unless the repository explicitly delegates that authority.
+
+## PR And Tracker Linking
+
+If work corresponds to a tracker issue, include exactly one line in the PR body:
+
+```text
+Closes <TEAM>-123
+```
+
+Use `Refs <TEAM>-123` if the issue should stay open after merge. Do not fabricate
+tracker IDs.
+
+## Email And Message Drafting
+
+When drafting emails or messages:
+
+- Plain text only.
+- No Markdown artifacts.
+- Paragraphs separated by a single blank line.
+- Use direct, human wording.
+- Include a clear next step.

@@ -1,0 +1,4 @@
+name: cmem
+version: 2.0.0
+description: "cmem — writes to the local worker (durable queue, syncs to cmem.ai), recalls from the synced cloud via the cmem MCP; stdlib HTTP only."
+pip_dependencies: []
