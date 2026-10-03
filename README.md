@@ -76,6 +76,15 @@ state, and stale Claude-harness paths. It does not change user configuration. A 
 `codex-diagnostics.sh --probe` proves the configured request path can answer; it does not
 prove that every MCP server initialized.
 
+### Desktop troubleshooting checkpoint
+
+If the desktop app shows startup error codes, run `codex-diagnostics.sh` from a terminal and
+compare the results after restarting the app. MCP registration and lifecycle hooks are separate
+systems: an optional MCP can fail during startup while hooks continue to run. The diagnostics
+classify MCP failures, hook wiring, provider reachability, and relay health separately. A healthy
+provider probe does not clear an MCP startup failure, and a relay model-catalog warning does not
+mean the request failed.
+
 ## Per-repository state
 
 ```bash
