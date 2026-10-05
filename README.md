@@ -7,6 +7,15 @@ hooks, MCP registry, plugins, and `codex exec` interface.
 The repository stays separate from any Claude Code installation. It does not install
 Claude settings, read Claude configuration, or require a compatibility client.
 
+## Client boundary
+
+This repository is the Codex source of truth. It owns Codex configuration examples,
+lifecycle hooks, `.codex-harness/` initialization, and Codex plugin marketplace examples.
+Claude plugin manifests and Claude-only installers live in
+[`claude-code-harness`](https://github.com/Screddyice/claude-code-harness).
+
+Run `scripts/audit-client-boundary.sh` after changing plugin or installer files.
+
 ## What it provides
 
 - `AGENTS.md` templates for workspace and project guidance.
