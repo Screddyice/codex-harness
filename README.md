@@ -124,9 +124,10 @@ durable handoff.
 
 ## Local Qwen
 
-`scripts/qwen` checks memory pressure, coordinates the shared compute lock, records model
-residency, and keeps the Codex config unchanged by passing provider overrides on the command
-line.
+`scripts/qwen` checks native macOS memory pressure, coordinates the shared compute lock,
+records model residency through Ollama, and keeps the Codex config unchanged by passing
+provider overrides on the command line. macOS and Ollama own RAM admission; the wrapper
+does not maintain a second byte budget.
 
 ```bash
 scripts/qwen

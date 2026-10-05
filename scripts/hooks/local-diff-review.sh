@@ -31,6 +31,11 @@ preflight="${LOCAL_REVIEW_PREFLIGHT:-llmjury}"
 if [ "$preflight" = llmjury ] && ! command -v llmjury >/dev/null 2>&1; then
   preflight="$HOME/.local/bin/llmjury"
 fi
+# macOS and Ollama own memory admission. Keep the custom byte-budget probe
+# available as an explicit override, but do not make it the normal review gate.
+if [ "$(uname -s 2>/dev/null || true)" = Darwin ] && [ -z "${LOCAL_REVIEW_PREFLIGHT:-}" ]; then
+  preflight=off
+fi
 
 top="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
 origin="$(git -C "$top" remote get-url origin 2>/dev/null || true)"
@@ -111,15 +116,15 @@ try:
 except BlockingIOError:
     raise SystemExit(1)
 
-# This read-only probe shares council ownership and pressure policy.
-# A missing/old CLI, failed probe, or refusal skips without consuming the diff.
-probe = subprocess.run(
-    [os.environ["REVIEW_PREFLIGHT"], "preflight", "--models", os.environ["MODEL"],
-     "--num-ctx", "24576", "--host", os.environ["OLLAMA"]],
-    capture_output=True, text=True, timeout=45,
-)
-if probe.returncode != 0:
-    raise SystemExit(1)
+# The custom byte-budget probe is opt-in. macOS and Ollama own normal admission.
+if os.environ["REVIEW_PREFLIGHT"] != "off":
+    probe = subprocess.run(
+        [os.environ["REVIEW_PREFLIGHT"], "preflight", "--models", os.environ["MODEL"],
+         "--num-ctx", "24576", "--host", os.environ["OLLAMA"]],
+        capture_output=True, text=True, timeout=45,
+    )
+    if probe.returncode != 0:
+        raise SystemExit(1)
 
 payload = {
     "model": os.environ["MODEL"],
