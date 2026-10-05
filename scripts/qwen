@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# qwen - guarded local Ollama sessions for Codex and Qwen Code.
+# qwen - local Ollama sessions for Codex and Qwen Code.
 # This wrapper is Codex-only and never edits ~/.codex/config.toml.
 
 set -eo pipefail
@@ -9,16 +9,11 @@ MODEL=$(printenv QWEN_MODEL 2>/dev/null || true)
 if [ "$1" = 27b ] || [ "$1" = 27B ]; then MODEL=qwen3.8:27b-obliterated; shift; fi
 STATE_DIR=$(printenv QWEN_STATE_DIR 2>/dev/null || true)
 [ -n "$STATE_DIR" ] || STATE_DIR=$HOME/.cache/qwen
-MODEL_KEY=$(printf '%s' "$MODEL" | tr -c '[:alnum:]_.-' '_')
-MEASURED=$STATE_DIR/$MODEL_KEY/resident-bytes
 LEASE_DIR=$(printenv LLMJURY_COMPUTE_LEASE_DIR 2>/dev/null || true)
 [ -n "$LEASE_DIR" ] || LEASE_DIR=$HOME/.backdoor/compute-leases
 LOCK_PATH=$(printenv LLMJURY_LOCAL_LOCK 2>/dev/null || true)
 [ -n "$LOCK_PATH" ] || LOCK_PATH=$HOME/.cache/llmjury/local-compute.lock
 GB=$((1024 ** 3))
-DESKTOP_RESERVE=$((4 * GB))
-PROMPT_CACHE_MIB=$(printenv QWEN_PROMPT_CACHE_MIB 2>/dev/null || true)
-[ -n "$PROMPT_CACHE_MIB" ] || PROMPT_CACHE_MIB=1024
 host=$(printenv OLLAMA_HOST 2>/dev/null || true)
 [ -n "$host" ] || host=127.0.0.1:11434
 case "$host" in http://*|https://*) API=$host ;; *) API=http://$host ;; esac
@@ -50,26 +45,6 @@ check_pressure() {
   level=$(sysctl -n kern.memorystatus_vm_pressure_level 2>/dev/null) || die "cannot read host memory pressure"
   [ "$level" = 1 ] || die "host memory pressure is elevated or unknown (level $level)"
 }
-available_bytes() {
-  vm_stat 2>/dev/null | python3 -c '
-import re,sys
-text=sys.stdin.read()
-page=re.search(r"page size of ([0-9]+) bytes",text)
-values=[re.search(r"^Pages "+name+r":\s+([0-9]+)\.\s*$",text,re.M) for name in ("free","speculative","purgeable")]
-files=re.search(r"^File-backed pages:\s+([0-9]+)\.\s*$",text,re.M)
-if not page or not all(values) or not files: raise SystemExit(1)
-free,spec,purge=(int(x[1]) for x in values)
-print(int(page[1])*(free+max(int(files[1]),spec+purge)))'
-}
-need_bytes() {
-  local measured disk slots ctx
-  measured=$(cat "$MEASURED" 2>/dev/null || true)
-  case "$measured" in ''|*[!0-9]*) ;; *) printf '%s\n' $((measured + PROMPT_CACHE_MIB * 1024 * 1024)); return;; esac
-  disk=$(disk_bytes); [ -n "$disk" ] || return 1
-  slots=$(printenv OLLAMA_NUM_PARALLEL 2>/dev/null || true); [ -n "$slots" ] || slots=2
-  ctx=$(printenv OLLAMA_CONTEXT_LENGTH 2>/dev/null || true); [ -n "$ctx" ] || ctx=32768
-  printf '%s\n' $((disk * 115 / 100 + ctx * slots * 45000 + PROMPT_CACHE_MIB * 1024 * 1024))
-}
 take_lock() {
   mkdir -p "$(dirname "$LOCK_PATH")"; exec 9>>"$LOCK_PATH"
   python3 - <<'PY' || die "another local council or background review owns compute; retry later"
@@ -94,20 +69,16 @@ stop_other_models() {
   while read -r name; do [ -n "$name" ] || continue; note "unloading $name to make room"; ollama stop "$name" >/dev/null 2>&1 || die "failed to unload $name"; done < <(other_models)
 }
 admit() {
-  local available required budget
-  check_pressure; stop_other_models
-  required=$(need_bytes) || die "cannot estimate model memory; use --force to override"
-  available=$(available_bytes) || die "cannot read host memory; use --force to override"
-  budget=$((available - DESKTOP_RESERVE)); [ "$budget" -ge 0 ] || budget=0
-  [ "$budget" -ge "$required" ] || die "$MODEL needs ~$(gb "$required") GiB; only $(gb "$budget") GiB estimated headroom"
-  note "loading $MODEL (~$(gb "$required") GB)"
+  check_pressure
+  stop_other_models
+  note "macOS pressure is normal; Ollama owns model memory limits"
 }
 admit_session() {
   start_server
   [ -n "$(disk_bytes)" ] || die "$MODEL is not pulled (ollama pull $MODEL)"
   if [ -n "$(resident_bytes)" ]; then check_pressure; note "attaching to resident $MODEL"; return; fi
   take_lock; lease_open
-  if [ "$(printenv QWEN_FORCE 2>/dev/null || true)" != 1 ]; then admit; else note "--force: skipping memory guard"; fi
+  admit
 }
 cmd_status() {
   start_server; local size
