@@ -85,6 +85,11 @@ state, and stale Claude-harness paths. It does not change user configuration. A 
 `codex-diagnostics.sh --probe` proves the configured request path can answer; it does not
 prove that every MCP server initialized.
 
+Recent Codex versions can persist lifecycle registrations in `config.toml` under
+`[hooks.state]` instead of using a standalone `~/.codex/hooks.json`. The audit accepts
+that plugin-managed form, reports when the harness hooks are not installed, and still
+fails on stale Claude hook state.
+
 ### Desktop troubleshooting checkpoint
 
 If the desktop app shows startup error codes, run `codex-diagnostics.sh` from a terminal and
@@ -173,6 +178,7 @@ scripts/test-track-branch-pr.sh
 scripts/test-install-llmjury-orchestration.sh
 scripts/test-codex-diagnostics.sh
 scripts/test-swarm.sh
+scripts/test-audit-codex-harness.sh
 scripts/audit-codex-harness.sh /path/to/repository
 git diff --check
 ```
