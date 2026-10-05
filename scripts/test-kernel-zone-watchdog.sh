@@ -3,6 +3,8 @@
 # against a throwaway state dir and only reads the live zone table.
 set -uo pipefail
 
+export KERNEL_ZONE_WATCHDOG_NO_NOTIFY=1
+
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WATCHDOG="$HERE/kernel-zone-watchdog.sh"
 TMP="$(mktemp -d)"

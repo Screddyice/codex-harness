@@ -36,7 +36,15 @@ if [ -f "$codex_home/hooks.json" ]; then
     fail "$codex_home/hooks.json contains stale Claude harness wiring"
   fi
 else
-  fail "missing $codex_home/hooks.json"
+  # Current Codex releases persist plugin-managed hook registrations in
+  # config.toml. A missing standalone hooks.json means the harness hooks are
+  # not installed; it is not an invalid installation and must not make this
+  # read-only audit fail.
+  if [ -f "$codex_home/config.toml" ] && rg -q '^\[hooks\.state\][[:space:]]*$' "$codex_home/config.toml"; then
+    printf 'INFO: no standalone hooks.json; using plugin-managed Codex hooks\n'
+  else
+    printf 'INFO: no standalone hooks.json; Codex harness hooks are not installed\n'
+  fi
 fi
 
 if [ -f "$codex_home/config.toml" ] && rg -q '^\[features\][[:space:]]*$' "$codex_home/config.toml"; then
@@ -45,6 +53,9 @@ if [ -f "$codex_home/config.toml" ] && rg -q '^\[features\][[:space:]]*$' "$code
 fi
 
 if [ -f "$codex_home/config.toml" ]; then
+  if rg -qi 'claude-code-harness|claude-harness|enforce-pr-claude|CLAUDE_CONFIG_DIR' "$codex_home/config.toml"; then
+    fail "$codex_home/config.toml contains stale Claude harness wiring"
+  fi
   for plugin in holyclaude claude-harness; do
     awk -v name="$plugin" '
       $0 ~ "^\\[plugins\\.\"" name "@" { in_plugin=1; next }
@@ -53,6 +64,15 @@ if [ -f "$codex_home/config.toml" ]; then
       END { exit found ? 0 : 1 }
     ' "$codex_home/config.toml" && fail "legacy plugin $plugin is enabled in $codex_home/config.toml"
   done
+fi
+
+watchdog_plist="$HOME/Library/LaunchAgents/com.screddy.kernel-zone-watchdog.plist"
+if [ -f "$watchdog_plist" ]; then
+  if rg -q 'claude-code-harness|claude-harness' "$watchdog_plist"; then
+    fail "$watchdog_plist contains stale Claude harness wiring"
+  fi
+  watchdog_path=$(plutil -extract ProgramArguments.0 raw -o - "$watchdog_plist" 2>/dev/null || true)
+  [ -x "$watchdog_path" ] || fail "kernel-zone watchdog target is not executable: $watchdog_path"
 fi
 
 if [ -d "$workspace" ]; then

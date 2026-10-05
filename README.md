@@ -7,6 +7,15 @@ hooks, MCP registry, plugins, and `codex exec` interface.
 The repository stays separate from any Claude Code installation. It does not install
 Claude settings, read Claude configuration, or require a compatibility client.
 
+## Client boundary
+
+This repository is the Codex source of truth. It owns Codex configuration examples,
+lifecycle hooks, `.codex-harness/` initialization, and Codex plugin marketplace examples.
+Claude plugin manifests and Claude-only installers live in
+[`claude-code-harness`](https://github.com/Screddyice/claude-code-harness).
+
+Run `scripts/audit-client-boundary.sh` after changing plugin or installer files.
+
 ## What it provides
 
 - `AGENTS.md` templates for workspace and project guidance.
@@ -75,6 +84,20 @@ The audit checks `~/.codex/hooks.json`, the enabled hook feature, per-repository
 state, and stale Claude-harness paths. It does not change user configuration. A successful
 `codex-diagnostics.sh --probe` proves the configured request path can answer; it does not
 prove that every MCP server initialized.
+
+Recent Codex versions can persist lifecycle registrations in `config.toml` under
+`[hooks.state]` instead of using a standalone `~/.codex/hooks.json`. The audit accepts
+that plugin-managed form, reports when the harness hooks are not installed, and still
+fails on stale Claude hook state.
+
+### Desktop troubleshooting checkpoint
+
+If the desktop app shows startup error codes, run `codex-diagnostics.sh` from a terminal and
+compare the results after restarting the app. MCP registration and lifecycle hooks are separate
+systems: an optional MCP can fail during startup while hooks continue to run. The diagnostics
+classify MCP failures, hook wiring, provider reachability, and relay health separately. A healthy
+provider probe does not clear an MCP startup failure, and a relay model-catalog warning does not
+mean the request failed.
 
 ## Per-repository state
 
@@ -155,12 +178,14 @@ scripts/test-track-branch-pr.sh
 scripts/test-install-llmjury-orchestration.sh
 scripts/test-codex-diagnostics.sh
 scripts/test-swarm.sh
+scripts/test-audit-codex-harness.sh
 scripts/audit-codex-harness.sh /path/to/repository
 git diff --check
 ```
 
 The tests use temporary repositories and mocked CLIs. They do not send mail, mutate
-production systems, or call external accounts.
+production systems, call external accounts, or show desktop notifications. The kernel-zone
+watchdog tests suppress notifications while exercising synthetic thresholds.
 
 ## Sanitization
 

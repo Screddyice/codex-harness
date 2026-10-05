@@ -13,6 +13,7 @@ scripts/test-codex-local-diff-review.sh
 scripts/test-shared-hooks.sh
 scripts/test-track-branch-pr.sh
 scripts/test-install-llmjury-orchestration.sh
+scripts/test-audit-codex-harness.sh
 scripts/audit-codex-harness.sh /path/to/workspace
 git diff --check
 ```

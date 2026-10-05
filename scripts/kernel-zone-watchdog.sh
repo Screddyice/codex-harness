@@ -89,6 +89,7 @@ take_snapshot() {
 
 notify() {
   local title="$1" msg="$2"
+  [ "${KERNEL_ZONE_WATCHDOG_NO_NOTIFY:-0}" = "1" ] && return 0
   osascript -e "display notification \"${msg//\"/\'}\" with title \"${title//\"/\'}\"" >/dev/null 2>&1 || true
   logger -t kernel-zone-watchdog "$title: $msg" 2>/dev/null || true
 }
