@@ -21,7 +21,7 @@ Run `scripts/audit-client-boundary.sh` after changing plugin or installer files.
 - `AGENTS.md` templates for workspace and project guidance.
 - Idempotent `.codex-harness/` repository scaffolding for plans, memory, and handoffs.
 - Codex lifecycle hooks for draft-PR tracking, branch protection nudges, and local diff review.
-- Read-only diagnostics for Codex, MCP startup, the local relay, and hook registration.
+- Read-only diagnostics for Codex, MCP startup, provider reachability, and hook registration.
 - A resource-aware `qwen` launcher for local Codex and Qwen Code sessions.
 - A Codex-only swarm runner that isolates bounded tasks in git worktrees.
 - Example Codex config, hooks, MCP, and local plugin marketplace files.
@@ -79,8 +79,8 @@ Run this before changing a working Codex installation:
 scripts/codex-diagnostics.sh
 ```
 
-The command reports Codex version, config paths, hook targets, MCP startup status, local
-relay health, and the current repository's `AGENTS.md` and `.codex-harness/` state.
+The command reports Codex version, config paths, hook targets, MCP startup status, and the
+current repository's `AGENTS.md` and `.codex-harness/` state.
 It does not print environment values or mutate configuration. Add `--probe` to send a small
 request through the configured Codex provider.
 
@@ -105,9 +105,8 @@ fails on stale Claude hook state.
 If the desktop app shows startup error codes, run `codex-diagnostics.sh` from a terminal and
 compare the results after restarting the app. MCP registration and lifecycle hooks are separate
 systems: an optional MCP can fail during startup while hooks continue to run. The diagnostics
-classify MCP failures, hook wiring, provider reachability, and relay health separately. A healthy
-provider probe does not clear an MCP startup failure, and a relay model-catalog warning does not
-mean the request failed.
+classify MCP failures, hook wiring, and provider reachability separately. A healthy provider
+probe does not clear an MCP startup failure.
 
 ## Per-repository state
 

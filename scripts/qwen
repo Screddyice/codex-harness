@@ -10,7 +10,7 @@ if [ "$1" = 27b ] || [ "$1" = 27B ]; then MODEL=qwen3.8:27b-obliterated; shift; 
 STATE_DIR=$(printenv QWEN_STATE_DIR 2>/dev/null || true)
 [ -n "$STATE_DIR" ] || STATE_DIR=$HOME/.cache/qwen
 LEASE_DIR=$(printenv LLMJURY_COMPUTE_LEASE_DIR 2>/dev/null || true)
-[ -n "$LEASE_DIR" ] || LEASE_DIR=$HOME/.backdoor/compute-leases
+[ -n "$LEASE_DIR" ] || LEASE_DIR=$HOME/.cache/llmjury/compute-leases
 LOCK_PATH=$(printenv LLMJURY_LOCAL_LOCK 2>/dev/null || true)
 [ -n "$LOCK_PATH" ] || LOCK_PATH=$HOME/.cache/llmjury/local-compute.lock
 GB=$((1024 ** 3))
