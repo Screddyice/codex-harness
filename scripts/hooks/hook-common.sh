@@ -51,7 +51,7 @@ hook_load_branch_context() {
   # owner/repo for ORIGIN specifically. Every gh call below must be pinned to
   # this, because bare `gh` picks a remote by its own precedence and prefers
   # `upstream` when one exists — so in a fork it answers about the PARENT repo.
-  # Observed 2026-08-12 in Screddyice/backdoor (a fork of ajsai47/backdoor):
+  # Observed 2026-08-12 in Screddyice/retired router (a fork of ajsai47/retired router):
   # an open PR on origin was reported as "no open pull request", and the Stop
   # hook blocked every single stop with no way to satisfy it. The PR existed
   # the whole time; the hook was asking the wrong repository.
@@ -335,7 +335,7 @@ hook_head_within_merged() {
 # but under a name this checkout has never heard of. hook_branch_already_merged()
 # cannot see it: that asks `--head "$HOOK_BRANCH"`, and the PR is on `feat/real`.
 # So the auto-PR hook pushes the scratch name too and opens a second PR for
-# commits already under review. Observed 2026-08-25 in Screddyice/backdoor, where
+# commits already under review. Observed 2026-08-25 in Screddyice/retired router, where
 # #51 and #52 appeared for the `pr47-check` and `pr44-check` branches used to
 # test-merge #47 and #44.
 #

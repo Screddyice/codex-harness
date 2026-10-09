@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Read-only diagnostics for a Codex installation and its local request path.
+# Read-only diagnostics for a Codex installation and its configured request path.
 
 set -uo pipefail
 
@@ -41,14 +41,6 @@ if command -v codex >/dev/null 2>&1; then
     | awk 'NR == 1 || /enabled|disabled/ {print}' \
     | sed -E 's/(Bearer|token|api[_-]?key|secret|password)[=:][^ ]*/\1=<redacted>/Ig' \
     | sed -n '1,80p'
-fi
-
-relay_health="${TMPDIR:-/tmp}/codex-harness-relay-health.$$"
-trap 'printf "" > "$relay_health"; /bin/rm -f "$relay_health" 2>/dev/null || true' EXIT
-if curl -sf -m 3 http://127.0.0.1:8083/health >"$relay_health" 2>/dev/null; then
-  printf 'Relay: '; tr -d '\n' < "$relay_health"; printf '\n'
-else
-  echo 'Relay: not reachable at http://127.0.0.1:8083/health'
 fi
 
 if [ -f "$workspace/AGENTS.md" ]; then

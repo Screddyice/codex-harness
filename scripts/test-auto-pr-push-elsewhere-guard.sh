@@ -9,7 +9,7 @@
 # on `feat/real`. So the hook pushed the scratch name as well and opened a
 # second PR for commits already in review.
 #
-# Observed 2026-08-25 in Screddyice/backdoor: #51 and #52 appeared for the
+# Observed 2026-08-25 in Screddyice/retired router: #51 and #52 appeared for the
 # `pr47-check` and `pr44-check` branches used to test-merge #47 and #44.
 #
 # `gh` is mocked; AUTO_PR_PUSH_DRYRUN keeps the run off the network, and the
