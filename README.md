@@ -61,6 +61,16 @@ Codex hooks receive a JSON event on stdin. `examples/hooks.json.example` wires t
 The PR hook is inert unless `HARNESS_PR_OWNERS` names the GitHub owners it may handle.
 It skips trunk, detached heads, RS21 repositories, and repositories without `origin`.
 
+### Selected integration profile
+
+The maintained profile covers Gmail, Google Calendar, Slack, browser and computer-use
+tools, visualization, PDF and office document formats, template creation, and code
+review. It also supports ClaudeMem, Corpus search, JEV, and the Node REPL through MCP.
+
+Enable the corresponding entries in `~/.codex/config.toml` and authenticate each
+service separately. The checked-in example keeps paths generic and never includes
+credential values.
+
 ## Diagnostics
 
 Run this before changing a working Codex installation:
