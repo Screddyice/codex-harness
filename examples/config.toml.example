@@ -12,15 +12,51 @@ project_doc_max_bytes = 131072
 [projects."/Users/you/projects"]
 trust_level = "trusted"
 
-# Example first-party plugin. Enable only plugins you actually use.
+# Selected first-party integrations. Each service still needs its own
+# authentication and may be disabled without changing the rest of the profile.
 [plugins."gmail@openai-curated"]
-enabled = false
+enabled = true
 
-# Optional hooks. Copy examples/hooks.json.example to ~/.codex/hooks.json first.
-# hooks = "/Users/you/.codex/hooks.json"
-#
-# [features]
-# hooks = true
+[plugins."google-calendar@openai-curated"]
+enabled = true
+
+[plugins."slack@openai-curated"]
+enabled = true
+
+[plugins."browser@openai-bundled"]
+enabled = true
+
+[plugins."chrome@openai-bundled"]
+enabled = true
+
+[plugins."computer-use@openai-bundled"]
+enabled = true
+
+[plugins."visualize@openai-bundled"]
+enabled = true
+
+[plugins."pdf@openai-primary-runtime"]
+enabled = true
+
+[plugins."documents@openai-primary-runtime"]
+enabled = true
+
+[plugins."spreadsheets@openai-primary-runtime"]
+enabled = true
+
+[plugins."presentations@openai-primary-runtime"]
+enabled = true
+
+[plugins."template-creator@openai-primary-runtime"]
+enabled = true
+
+[plugins."code-review@openai-bundled"]
+enabled = true
+
+# Enable Codex lifecycle hooks. Copy examples/hooks.json.example to
+# ~/.codex/hooks.json when installing the harness hooks.
+[features]
+hooks = true
 
 # Default sandbox and approval behavior.
 # CLI equivalents:
@@ -38,3 +74,25 @@ model_reasoning_effort = "medium"
 #   codex mcp add my-server -- /path/to/server --stdio
 #   codex mcp add docs --url https://example.com/mcp
 #   codex mcp list
+
+[mcp_servers.cmem]
+url = "https://cmem.ai/api/mcp"
+bearer_token_env_var = "CMEM_PRO_TOKEN"
+enabled = true
+
+[mcp_servers.corpus]
+command = "/path/to/python3"
+args = ["/path/to/corpus_search_mcp.py"]
+
+[mcp_servers.jev]
+command = "/path/to/jev-mcp"
+enabled = true
+
+[mcp_servers.computer-use]
+command = "/path/to/SkyComputerUseClient"
+args = ["mcp"]
+enabled = true
+
+[mcp_servers.node_repl]
+command = "/path/to/node_repl"
+enabled = true
