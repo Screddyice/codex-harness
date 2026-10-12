@@ -212,6 +212,10 @@ default. Review each generated branch before folding it into project work.
 
 ## Verification
 
+`main` is protected: changes land through a pull request with linear history, and
+`scripts/verify.sh` is the gate the QA review bot runs before it approves or merges a PR
+(configured in `.shawns-qa.toml`).
+
 ```bash
 find scripts -name '*.sh' -print0 | xargs -0 bash -n
 scripts/test-codex-local-diff-review.sh
