@@ -1,0 +1,8 @@
+# Shawns QA Assist per-repo config.
+#
+# Without a gate here the agent reports merge_eligible=false and hands every PR
+# to a human, because nothing can vouch for the change. See scripts/verify.sh
+# for what this checks.
+
+[verify]
+test = "bash scripts/verify.sh"
