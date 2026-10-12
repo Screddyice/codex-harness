@@ -1,0 +1,106 @@
+# Example ~/.codex/config.toml
+#
+# Keep secrets out of this file. Put credentials in your shell environment, a secret
+# manager, or per-project .env files that are never committed.
+
+preferred_auth_method = "chatgpt"
+
+# Give workspace and repository AGENTS.md files enough room for operational context.
+project_doc_max_bytes = 131072
+
+# Trust only the workspace roots where you intentionally run Codex.
+[projects."/Users/you/projects"]
+trust_level = "trusted"
+
+# Selected first-party integrations. Each service still needs its own
+# authentication and may be disabled without changing the rest of the profile.
+[plugins."gmail@openai-curated"]
+enabled = true
+
+[plugins."google-calendar@openai-curated"]
+enabled = true
+
+[plugins."slack@openai-curated"]
+enabled = true
+
+[plugins."browser@openai-bundled"]
+enabled = true
+
+[plugins."chrome@openai-bundled"]
+enabled = true
+
+[plugins."computer-use@openai-bundled"]
+enabled = true
+
+[plugins."visualize@openai-bundled"]
+enabled = true
+
+[plugins."pdf@openai-primary-runtime"]
+enabled = true
+
+[plugins."documents@openai-primary-runtime"]
+enabled = true
+
+[plugins."spreadsheets@openai-primary-runtime"]
+enabled = true
+
+[plugins."presentations@openai-primary-runtime"]
+enabled = true
+
+[plugins."template-creator@openai-primary-runtime"]
+enabled = true
+
+[plugins."code-review@openai-bundled"]
+enabled = true
+
+# Process skills: TDD, systematic debugging, planning, verification.
+[plugins."superpowers@openai-curated-remote"]
+enabled = true
+
+# Enable Codex lifecycle hooks. Copy examples/hooks.json.example to
+# ~/.codex/hooks.json when installing the harness hooks.
+[features]
+hooks = true
+
+# Default sandbox and approval behavior.
+# CLI equivalents:
+#   codex --sandbox workspace-write --ask-for-approval on-request
+sandbox_mode = "workspace-write"
+approval_policy = "on-request"
+
+# Optional profile for a specific model or reasoning setting.
+[profiles.default]
+model = "gpt-5.4"
+model_reasoning_effort = "medium"
+
+# Register MCP servers with the CLI instead of hand-writing config:
+#
+#   codex mcp add my-server -- /path/to/server --stdio
+#   codex mcp add docs --url https://example.com/mcp
+#   codex mcp list
+
+[mcp_servers.cmem]
+url = "https://cmem.ai/api/mcp"
+bearer_token_env_var = "CMEM_PRO_TOKEN"
+enabled = true
+
+[mcp_servers.corpus]
+command = "/path/to/python3"
+args = ["/path/to/corpus_search_mcp.py"]
+
+[mcp_servers.jev]
+command = "/path/to/jev-mcp"
+enabled = true
+# The launcher reads the key from this variable or its protected runtime file.
+env_vars = ["JEV_OPENROUTER_API_KEY"]
+startup_timeout_sec = 20
+tool_timeout_sec = 40
+
+[mcp_servers.computer-use]
+command = "/path/to/SkyComputerUseClient"
+args = ["mcp"]
+enabled = true
+
+[mcp_servers.node_repl]
+command = "/path/to/node_repl"
+enabled = true

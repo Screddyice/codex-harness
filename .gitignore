@@ -1,0 +1,17 @@
+.DS_Store
+*.log
+.env
+.env.local
+*.secret
+**/node_modules/
+**/.venv/
+**/__pycache__/
+# Codex per-repository state
+.codex-harness/
+.codex-harness/sessions/
+.codex-harness/memory/compaction-backups/
+.codex-harness/memory/working/
+
+# Local Codex configuration
+.codex/config.local.toml
+.codex/hooks.local.json

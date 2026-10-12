@@ -1,0 +1,29 @@
+{
+  "name": "example-plugin",
+  "version": "0.1.0",
+  "description": "Placeholder local Codex plugin. Replace this with your own plugin metadata.",
+  "author": {
+    "name": "Example Author",
+    "email": "example@example.com",
+    "url": "https://example.com"
+  },
+  "homepage": "https://example.com/example-plugin",
+  "repository": "https://example.com/example-plugin.git",
+  "license": "MIT",
+  "keywords": ["example", "local", "codex"],
+  "interface": {
+    "displayName": "Example Plugin",
+    "shortDescription": "Placeholder local plugin",
+    "longDescription": "A placeholder Codex plugin manifest for local marketplace testing.",
+    "developerName": "Example Author",
+    "category": "Productivity",
+    "capabilities": ["Interactive"],
+    "websiteURL": "https://example.com",
+    "privacyPolicyURL": "https://example.com/privacy",
+    "termsOfServiceURL": "https://example.com/terms",
+    "defaultPrompt": [
+      "Show me how this local plugin is wired."
+    ],
+    "brandColor": "#3B82F6"
+  }
+}
