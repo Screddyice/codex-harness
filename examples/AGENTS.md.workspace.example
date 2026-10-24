@@ -4,6 +4,14 @@ This file is a **template** for a multi-company Codex workspace directory such a
 `~/projects/`. Replace `<COMPANY_A>`, `<COMPANY_B>`, and `<COMPANY_C>` with your own
 organizations.
 
+## Current runtime and work state
+
+Follow the host's global instruction profile for current runtime, Corpus retrieval,
+JEV routing and automatic review. Read the nearest repository instructions before
+work. Use ClaudeMem `work_state_read(includeClosed=true)` / `work_state_write`
+for task state, one named list per task; close it only after verification.
+Do not recreate retired feature/checkpoint state to track work.
+
 ## Workspace Overview
 
 `~/projects/` is the top-level workspace for multiple companies and personal projects.

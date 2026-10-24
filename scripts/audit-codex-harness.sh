@@ -29,8 +29,34 @@ check_file "$harness_root/scripts/hooks/local-diff-review.sh"
 check_file "$harness_root/scripts/hooks/local-diff-review-codex.sh"
 
 if [ -f "$codex_home/hooks.json" ]; then
-  if ! rg -q 'codex-harness/scripts' "$codex_home/hooks.json"; then
-    fail "$codex_home/hooks.json does not reference this harness"
+  if ! python3 - "$codex_home/hooks.json" <<'PY'
+import json
+import os
+import shlex
+import sys
+
+try:
+    with open(sys.argv[1]) as source:
+        hooks = json.load(source)["hooks"]
+    for event, groups in hooks.items():
+        for group in groups:
+            for hook in group.get("hooks", []):
+                if hook.get("type") != "command":
+                    continue
+                args = shlex.split(hook.get("command", ""))
+                if not args:
+                    continue
+                if "codex-harness/scripts/" in args[0]:
+                    sys.exit(0)
+                if (event == "Stop" and os.path.basename(args[0]) == "llmjury"
+                        and args[1:] == ["review-hook", "--host", "codex"]):
+                    sys.exit(0)
+except (OSError, ValueError, KeyError, TypeError, AttributeError):
+    pass
+sys.exit(1)
+PY
+  then
+    fail "$codex_home/hooks.json has no recognized Codex harness or review hook"
   fi
   if rg -qi 'claude-code-harness|claude-harness|\.claude-harness|enforce-pr-claude' "$codex_home/hooks.json"; then
     fail "$codex_home/hooks.json contains stale Claude harness wiring"
