@@ -4,8 +4,20 @@
 It packages the useful parts of the shared agent setup around Codex's own configuration,
 hooks, MCP registry, plugins, and `codex exec` interface.
 
-The repository stays separate from any Claude Code installation. It does not install
-Claude settings, read Claude configuration, or require a compatibility client.
+The repository keeps Codex settings and plugins separate from Claude Code.
+The optional cross-review hook invokes the installed Claude CLI through `llmjury`;
+it does not install Claude settings or plugins.
+
+## Current profile (2026-10-23)
+
+The current profile uses stock Codex, ClaudeMem work state, Corpus retrieval, JEV
+routing and the optional Claude ↔ Codex review hook. See
+[the current profile](docs/current-harness.md) and
+[global instructions](examples/AGENTS.md.global.example).
+
+The config example mirrors the installed model/access defaults without account
+state. Merge examples into existing files; do not overwrite unrelated settings.
+Legacy scaffold and auto-push utilities remain optional and are not prerequisites.
 
 ## Client boundary
 
@@ -19,8 +31,8 @@ Run `scripts/audit-client-boundary.sh` after changing plugin or installer files.
 ## What it provides
 
 - `AGENTS.md` templates for workspace and project guidance.
-- Idempotent `.codex-harness/` repository scaffolding for plans, memory, and handoffs.
-- Codex lifecycle hooks for draft-PR tracking, branch protection nudges, and local diff review.
+- ClaudeMem work-state guidance; optional legacy `.codex-harness/` scaffolding.
+- An optional cross-CLI Stop review hook plus legacy PR/review utilities.
 - Read-only diagnostics for Codex, MCP startup, provider reachability, and hook registration.
 - A resource-aware `qwen` launcher for local Codex and Qwen Code sessions.
 - A Codex-only swarm runner that isolates bounded tasks in git worktrees.
@@ -32,13 +44,11 @@ Run `scripts/audit-client-boundary.sh` after changing plugin or installer files.
 git clone https://github.com/Screddyice/codex-harness.git
 cd codex-harness
 
-cp ~/.codex/config.toml ~/.codex/config.toml.backup 2>/dev/null || true
-cp examples/config.toml.example ~/.codex/config.toml
-
-# Edit the trust path and model profile for your machine.
-cp examples/hooks.json.example ~/.codex/hooks.json
-
-scripts/init-codex-harness.sh /path/to/repository
+# Review and merge these files into the matching user configuration:
+# examples/config.toml.example         -> ~/.codex/config.toml
+# examples/hooks.json.example          -> ~/.codex/hooks.json
+# examples/AGENTS.md.global.example     -> ~/.codex/AGENTS.md
+# Edit placeholder paths and install the optional llmjury CLI before using its hook.
 ```
 
 The install examples do not create accounts, connect OAuth services, or copy secret
@@ -50,17 +60,12 @@ Codex reads user configuration from `~/.codex/config.toml`. Keep durable project
 `AGENTS.md`. Use `examples/config.toml.example` as a starting point and replace its trust
 path before use.
 
-Codex hooks receive a JSON event on stdin. `examples/hooks.json.example` wires three boundaries:
+Codex hooks receive a JSON event on stdin. The current `examples/hooks.json.example`
+registers `llmjury review-hook --host codex` on Stop. Install `llmjury` separately,
+merge the hook with existing entries and verify the command is available.
 
-| Event | Hook | Purpose |
-| --- | --- | --- |
-| `SessionStart` | `init-codex-harness.sh` | Create missing per-repository state without overwriting files. |
-| `PostToolUse` | `auto-pr-push.sh` | Push owned-organization branches and open a draft PR. |
-| `Stop` | `local-diff-review.sh`, `enforce-pr-codex.sh` | Review changed code and keep committed work on a PR. |
-
-When the local reviewer exits 2, `local-diff-review-codex.sh` blocks the stop and shows the
-reviewer's text. Before 2026-10-12 the wrapper ran that text as a command, so a defect never
-blocked a stop.
+`examples/hooks.legacy.json.example` retains the older initializer, auto-push and
+local-review profile for deliberate opt-in. It is not part of the current default.
 
 The PR hook is inert unless `HARNESS_PR_OWNERS` names the GitHub owners it may handle.
 It skips trunk, detached heads, repositories listed as excluded, and repositories without `origin`.
@@ -140,13 +145,14 @@ systems: an optional MCP can fail during startup while hooks continue to run. Th
 classify MCP failures, hook wiring, and provider reachability separately. A healthy provider
 probe does not clear an MCP startup failure.
 
-## Per-repository state
+## Optional legacy per-repository state
 
 ```bash
 scripts/init-codex-harness.sh /path/to/repository
 ```
 
-The initializer creates this state only when it is missing:
+This older initializer is not needed for current ClaudeMem task tracking. If
+explicitly selected, it creates this state only when it is missing:
 
 ```text
 .codex-harness/

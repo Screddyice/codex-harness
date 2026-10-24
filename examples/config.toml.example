@@ -5,6 +5,12 @@
 
 preferred_auth_method = "chatgpt"
 
+# Observed local profile on 2026-10-23. Choose access to suit your environment.
+model = "gpt-6.1-sol"
+model_reasoning_effort = "xhigh"
+sandbox_mode = "danger-full-access"
+approval_policy = "never"
+
 # Give workspace and repository AGENTS.md files enough room for operational context.
 project_doc_max_bytes = 131072
 
@@ -58,20 +64,16 @@ enabled = true
 enabled = true
 
 # Enable Codex lifecycle hooks. Copy examples/hooks.json.example to
-# ~/.codex/hooks.json when installing the harness hooks.
+# ~/.codex/hooks.json when installing the optional cross-review hook.
 [features]
 hooks = true
-
-# Default sandbox and approval behavior.
-# CLI equivalents:
-#   codex --sandbox workspace-write --ask-for-approval on-request
-sandbox_mode = "workspace-write"
-approval_policy = "on-request"
+js_repl = false
+memories = true
 
 # Optional profile for a specific model or reasoning setting.
 [profiles.default]
-model = "gpt-5.4"
-model_reasoning_effort = "medium"
+model = "gpt-6.1-sol"
+model_reasoning_effort = "xhigh"
 
 # Register MCP servers with the CLI instead of hand-writing config:
 #
