@@ -6,9 +6,8 @@
 # hook then dies inside somebody's session. Parsing every tracked script
 # catches that and runs in about a second.
 #
-# It deliberately does not lint style or run behaviour tests: there is no test
-# suite here, and a gate that failed on pre-existing style would block every PR
-# on faults it did not introduce.
+# It does not lint style. The focused ClaudeMem policy suite also checks that
+# its opt-in installer preserves settings and refuses unsafe or unknown targets.
 #
 # Portable to bash 3.2 (macOS): no mapfile, no readarray.
 set -uo pipefail
@@ -35,6 +34,10 @@ while IFS= read -r f; do
 done < <(git ls-files '*.py')
 
 find . -name '__pycache__' -type d -prune -exec rm -rf {} + 2>/dev/null
+
+if ! python3 scripts/test-claudemem-capture.py; then
+    status=1
+fi
 
 if [ "$status" -eq 0 ]; then
     echo "verify: all tracked shell and python files parse"

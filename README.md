@@ -108,6 +108,43 @@ test-first work, systematic debugging, planning, and checking before claiming
 success. Install it with `codex plugin add superpowers@openai-curated-remote`.
 Superpowers ranks `AGENTS.md` and direct requests above its own skills.
 
+## Quieter ClaudeMem capture
+
+Use `scripts/configure-claudemem-capture.py` to opt into **summaries plus explicit
+notes**. It retains request summaries and direct saved notes while suppressing
+individual tool events, including unknown future connector names. Both observer
+provider concurrency limits become six; the selected provider is preserved.
+
+```bash
+python3 scripts/configure-claudemem-capture.py check \
+  --settings "$HOME/.claude-mem/settings.json" \
+  --plugin-root /path/to/installed/claude-mem/13.34.2
+```
+
+Name the installed Codex plugin version directory. Repeat `--plugin-root` for
+any additional active profiles sharing this memory worker. `check` is read-only
+and exits nonzero when changes are needed or a build is unsupported. After
+safely draining and stopping the memory worker, replace `check` with `apply`.
+Keep sessions, hooks and editors stopped until apply finishes so they cannot
+restart the worker or write through an already-open file. The installer resolves
+the effective data directory from `CLAUDE_MEM_DATA_DIR` or the default settings;
+if the named settings file is only a pointer, it reports the effective file to use.
+It refuses to change a running worker, creates private backups, preserves unrelated
+settings and credentials, and never starts or restarts it. Concurrent path changes
+are preserved with exclusive file creation; recovery paths are reported if a
+conflict prevents restoration. A failed restoration does not stop the remaining
+files from being rolled back. Conflicting policy environment variables are
+rejected; the actual worker and hook launch environments must agree with these
+settings because ClaudeMem gives environment variables precedence.
+
+This is a checksum-pinned local fix for ClaudeMem 13.34.2, not an automatic updater.
+Before a plugin upgrade, verify equivalent wildcard support or review a compatible
+patch: `*` alone is not a deny-all setting in an unpatched build. Do not apply the
+patch to an unknown build. Summaries depend on the assistant's reported outcomes;
+explicitly save critical decisions or results that need their own durable record.
+After installation, verify a newly saved summary, explicit note and work-state
+entry by reading each back; an accepted or queued response is insufficient.
+
 ## Diagnostics
 
 Run this before changing a working Codex installation:
