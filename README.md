@@ -276,6 +276,29 @@ The tests use temporary repositories and mocked CLIs. They do not send mail, mut
 production systems, call external accounts, or show desktop notifications. The kernel-zone
 watchdog tests suppress notifications while exercising synthetic thresholds.
 
+## CI
+
+Crow runs `.woodpecker.yaml` on every push and pull request, on the linux/arm64 agent
+on Shawn's Mac. A green `ci/crow/...` status on the PR head is the merge check. The
+pipeline has two steps. The first runs `shellcheck -S warning` over every shell script,
+including the extensionless `scripts/qwen`. The second parses every script, runs
+`scripts/verify.sh` and `scripts/audit-client-boundary.sh`, then runs each
+`scripts/test-*` file. It installs `jq` and `ripgrep`, which the audits need.
+
+Two tests drive tools that only exist on macOS, so CI skips them and they still need a
+run on the Mac before you change the scripts they cover: `test-kernel-zone-watchdog.sh`
+(`zprint`, `vm_stat`, `launchctl`) and `test-set-gui-env.sh` (values read back from
+`launchctl`).
+
+To run the same pipeline locally:
+
+```bash
+DOCKER_HOST=unix://$HOME/.colima/default/docker.sock ~/.local/bin/crow exec --local \
+  --repo-path "$PWD" --backend-engine docker --pipeline-event push \
+  --commit-branch "$(git branch --show-current)" --commit-sha "$(git rev-parse HEAD)" \
+  --repo Screddyice/codex-harness .woodpecker.yaml
+```
+
 ## Sanitization
 
 This repository contains no credentials, OAuth tokens, private hosts, customer names,
