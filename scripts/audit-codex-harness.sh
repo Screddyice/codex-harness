@@ -6,7 +6,7 @@ set -uo pipefail
 
 workspace="${1:-${CODEX_PROJECT_DIR:-$PWD}}"
 codex_home="${CODEX_HOME:-$HOME/.codex}"
-harness_root="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P)"
+harness_root="$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd -P)"
 failures=0
 audit_tmp="$(mktemp "${TMPDIR:-/tmp}/codex-harness-audit.XXXXXX")"
 trap 'rm -f "$audit_tmp"' EXIT

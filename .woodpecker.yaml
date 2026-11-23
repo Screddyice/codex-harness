@@ -1,0 +1,43 @@
+# Crow CI for codex-harness. Runs on the linux/arm64 agent on Shawn's Mac.
+# Two tests drive macOS-only tools and are skipped here; they still run on
+# the Mac (see the CI section of README.md).
+when:
+  event: [push, pull_request, manual]
+
+steps:
+  shellcheck:
+    image: koalaman/shellcheck-alpine:v0.11.0
+    commands:
+      - |
+        files=$(find . -type f -not -path './.git/*' | sort | while read -r f; do
+          case "$f" in *.sh) echo "$f"; continue ;; esac
+          head -n1 "$f" | grep -qE '^#!.*[/ ](ba|da)?sh( |$)' && echo "$f"
+        done)
+        echo "$files"
+        shellcheck -S warning $files
+
+  tests:
+    image: python:3.13-bookworm
+    commands:
+      - apt-get update -qq && apt-get install -y -qq jq ripgrep >/dev/null
+      - pip install -q --root-user-action=ignore pytest
+      - git config --global --add safe.directory '*'
+      - git config --global user.email ci@example.invalid
+      - git config --global user.name crow-ci
+      - git config --global init.defaultBranch main
+      - find scripts -name '*.sh' -print0 | xargs -0 -n1 bash -n
+      - bash scripts/verify.sh
+      - bash scripts/audit-client-boundary.sh
+      - |
+        fail=0
+        for t in scripts/test-*; do
+          case "$t" in
+            # macOS-only: zprint/vm_stat/launchctl, and launchctl-derived values.
+            scripts/test-kernel-zone-watchdog.sh|scripts/test-set-gui-env.sh)
+              echo "SKIP $t (macOS-only)"; continue ;;
+          esac
+          case "$t" in *.py) runner=python3 ;; *) runner=bash ;; esac
+          echo "=== $t"
+          if ! "$runner" "$t"; then echo "FAILED $t"; fail=1; fi
+        done
+        exit "$fail"

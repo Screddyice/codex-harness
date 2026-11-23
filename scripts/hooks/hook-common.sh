@@ -3,7 +3,7 @@
 # Shared helpers for Codex lifecycle hooks.
 
 # shellcheck source=excluded-repos.sh
-. "$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/excluded-repos.sh"
+. "$(CDPATH='' cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/excluded-repos.sh"
 
 hook_resolve_cwd() {
   local input="${1:-}"
@@ -236,7 +236,7 @@ hook_tighten_base_to_parent() {
 #
 # A silent no-op for a repo with no integration branch, which is most of them.
 hook_resolve_pr_base() {
-  local declared integration fork_point
+  local declared integration
   declared="${HOOK_PR_BASE:-}"
   if [ -z "$declared" ] && [ -r .codex-harness/pr-base ]; then
     declared="$(tr -d '[:space:]' < .codex-harness/pr-base 2>/dev/null || true)"
@@ -382,6 +382,8 @@ hook_head_has_pr_elsewhere() {
   [ -n "${HOOK_PR_ELSEWHERE:-}" ]
 }
 
+# HOOK_PR_STATUS is read by the hooks that source this file.
+# shellcheck disable=SC2034
 hook_load_pr_status() {
   HOOK_PR_STATUS=""
   HOOK_PR_COUNT="0"
@@ -423,6 +425,8 @@ hook_load_pr_status() {
 # self-rejection re-requesting the author is a no-op GitHub rejects with 422.
 #
 # Sets HOOK_CHANGE_REQUESTERS to a space-separated list, empty when none.
+# HOOK_CHANGE_REQUESTERS is read by the hooks that source this file.
+# shellcheck disable=SC2034
 hook_load_change_requesters() {
   HOOK_CHANGE_REQUESTERS=""
   [ -n "${HOOK_REPO_SLUG:-}" ] || return 0

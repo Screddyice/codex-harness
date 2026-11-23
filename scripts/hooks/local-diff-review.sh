@@ -40,7 +40,7 @@ fi
 top="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
 origin="$(git -C "$top" remote get-url origin 2>/dev/null || true)"
 # shellcheck source=excluded-repos.sh
-. "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/excluded-repos.sh"
+. "$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)/excluded-repos.sh"
 if harness_repo_excluded "$origin $(basename "$top")"; then exit 0; fi
 
 base="$(git -C "$top" symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/||')"
