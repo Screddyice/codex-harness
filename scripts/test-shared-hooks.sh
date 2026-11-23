@@ -2,7 +2,7 @@
 
 set -eu
 
-repo_root="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+repo_root="$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)"
 hooks="$repo_root/scripts/hooks"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT

@@ -2,7 +2,7 @@
 # Read-only audit that the Codex harness does not carry Claude plugin wiring.
 set -uo pipefail
 
-root="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P)"
+root="$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd -P)"
 failures=0
 
 fail() {

@@ -9,14 +9,14 @@ ok()  { printf '  ok   %s\n' "$1"; PASS=$((PASS+1)); }
 bad() { printf '  FAIL %s\n     %s\n' "$1" "${2:-}"; FAIL=$((FAIL+1)); }
 
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
-repo="$tmp/repo"; mkdir -p "$repo"; cd "$repo"
+repo="$tmp/repo"; mkdir -p "$repo"; cd "$repo" || exit 1
 git init -q -b main .; git config user.email a@b.c; git config user.name t
 echo one > f; git add f; git -c commit.gpgsign=false commit -qm one
 git branch taken
 
 # 1. THE INCIDENT. Ask for a branch that is already checked out.
 git worktree add -q "$tmp/held" taken
-canary="$tmp/canary"; mkdir -p "$canary"; cd "$canary"
+canary="$tmp/canary"; mkdir -p "$canary"; cd "$canary" || exit 1
 out=$("$SUT" "$repo" taken main -- git init -q . 2>&1); rc=$?
 if [ $rc -ne 0 ] && [ ! -d "$canary/.git" ]; then
   ok "refuses a branch checked out elsewhere, and runs nothing in the caller's cwd"
@@ -27,7 +27,7 @@ case "$out" in *"already checked out"*) ok "the refusal names the reason" ;;
   *) bad "the refusal names the reason" "got: $out" ;; esac
 
 # 2. The happy path still works, and the command runs INSIDE the worktree.
-cd "$canary"
+cd "$canary" || exit 1
 # Assert on the COMMAND's own output, not the script's banner: an earlier
 # version of this test matched the banner and passed while the command never ran.
 got=$("$SUT" "$repo" fresh main -- sh -c 'printf RAN_IN=%s "$PWD"' 2>/dev/null | tr -d '\n' | sed 's/.*RAN_IN=//')
@@ -43,7 +43,7 @@ left=$(git -C "$repo" worktree list | grep -c agent-wt- || true)
 [ "$left" = 0 ] && ok "worktree is removed after the command" || bad "worktree is removed" "$left left"
 
 # 4. A missing repo is rejected rather than half-run.
-cd "$canary"
+cd "$canary" || exit 1
 "$SUT" "$tmp/nope" b main -- true >/dev/null 2>&1 && bad "rejects a non-repo" "exit 0" || ok "rejects a non-repo"
 
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"; [ "$FAIL" -eq 0 ]

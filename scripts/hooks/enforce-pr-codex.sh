@@ -4,7 +4,7 @@
 
 set -uo pipefail
 
-script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+script_dir="$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)"
 # shellcheck source=hook-common.sh
 . "$script_dir/hook-common.sh"
 
